@@ -6,6 +6,7 @@ coverage/
 examples.local/
 examples/test.js
 examples/*.json
+*.tgz
 
 # This paragraph comes last. Force includes specific files.
 !docs/README.md
