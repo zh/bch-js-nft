@@ -1,5 +1,9 @@
+const BCHJS = require('@psf/bch-js')
+const bchjs = new BCHJS()
+// const bchjs = new BCHJS({ apiToken: process.env.BCHJSTOKEN })
+
 const BCHJSNFT = require('../src/bch-js-nft')
-const bchjs = new BCHJSNFT()
+const nftjs = new BCHJSNFT({ bchjs })
 const path = require('path')
 
 let walletInfo
@@ -16,9 +20,9 @@ try {
 async function listNFTTokens (walletInfo) {
   try {
     // console.log(`wallet: ${JSON.stringify(wallet, null, 2)}`)
-    const tokens = await bchjs.NFT.listTokens(walletInfo)
+    const tokens = await nftjs.NFT.listTokens(walletInfo)
     console.log(`tokens: ${JSON.stringify(tokens, null, 2)}`)
-    const groups = await bchjs.NFT.listAllGroups(walletInfo, tokens)
+    const groups = await nftjs.NFT.listAllGroups(walletInfo, tokens)
     console.log(`groups: ${JSON.stringify(groups, null, 2)}`)
   } catch (error) {
     console.error('error in listNFTTokens: ', error)

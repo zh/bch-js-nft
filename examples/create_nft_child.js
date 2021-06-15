@@ -5,8 +5,12 @@ const childConfig = {
   ticker: 'ZHCHLD'
 }
 
+const BCHJS = require('@psf/bch-js')
+const bchjs = new BCHJS()
+// const bchjs = new BCHJS({ apiToken: process.env.BCHJSTOKEN })
+
 const BCHJSNFT = require('../src/bch-js-nft')
-const bchjs = new BCHJSNFT()
+const nftjs = new BCHJSNFT({ bchjs })
 const path = require('path')
 
 let walletInfo
@@ -22,7 +26,7 @@ try {
 
 async function createNFTChild (walletInfo, config) {
   try {
-    const childTxId = await bchjs.NFT.createNftChild(walletInfo, config)
+    const childTxId = await nftjs.NFT.createNftChild(walletInfo, config)
     console.log(`https://explorer.bitcoin.com/bch/tx/${childTxId}`)
   } catch (error) {
     console.error('error in createNFTGroup: ', error)

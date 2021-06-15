@@ -5,8 +5,12 @@ const groupConfig = {
   amount: 100
 }
 
+const BCHJS = require('@psf/bch-js')
+const bchjs = new BCHJS()
+// const bchjs = new BCHJS({ apiToken: process.env.BCHJSTOKEN })
+
 const BCHJSNFT = require('../src/bch-js-nft')
-const bchjs = new BCHJSNFT()
+const nftjs = new BCHJSNFT({ bchjs })
 const path = require('path')
 
 let walletInfo
@@ -22,7 +26,7 @@ try {
 
 async function createNFTGroup (walletInfo, config) {
   try {
-    const groupTxId = await bchjs.NFT.createNftGroup(walletInfo, config)
+    const groupTxId = await nftjs.NFT.createNftGroup(walletInfo, config)
     console.log(`https://explorer.bitcoin.com/bch/tx/${groupTxId}`)
   } catch (error) {
     console.error('error in createNFTGroup: ', error)

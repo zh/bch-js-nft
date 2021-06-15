@@ -3,13 +3,17 @@
   will be used by later examples.
   */
 
+const BCHJS = require('@psf/bch-js')
+const bchjs = new BCHJS()
+// const bchjs = new BCHJS({ apiToken: process.env.BCHJSTOKEN })
+
 const BCHJSNFT = require('../src/bch-js-nft')
-  /*const nftjs = new BCHJSNFT({
-  slpdbURL: SLPDB_API,
-  apiToken: process.env.BCHJSTOKEN
-})*/
-const nftjs = new BCHJSNFT()
-const bchjs = nftjs.BCH
+/* const nftjs = new BCHJSNFT({
+   bchjs,
+   slpdbURL: SLPDB_API
+}) */
+const nftjs = new BCHJSNFT({ bchjs })
+const bchlib = nftjs.BCH
 
 const fs = require('fs')
 const path = require('path')
@@ -26,30 +30,27 @@ async function createWallet () {
       128,
       bchjs.Mnemonic.wordLists()[lang]
     )
-    console.log('BIP44 BCH Wallet')
-    outStr += 'BIP44 BCH Wallet\n'
-    console.log(`128 bit ${lang} BIP39 Mnemonic: `, mnemonic)
-    outStr += `\n128 bit ${lang} BIP32 Mnemonic:\n${mnemonic}\n\n`
+    outStr += `128 bit ${lang} BIP32 Mnemonic:\n${mnemonic}\n`
     outObj.mnemonic = mnemonic
 
     // root seed buffer
-    const rootSeed = await bchjs.Mnemonic.toSeed(mnemonic)
+    const rootSeed = await bchlib.Mnemonic.toSeed(mnemonic)
 
     // master HDNode
-    const masterHDNode = bchjs.HDNode.fromSeed(rootSeed)
+    const masterHDNode = bchlib.HDNode.fromSeed(rootSeed)
 
     // HDNode of BIP44 account
-    console.log('BIP44 Account: "m/44\'/245\'/0\'"')
     outStr += 'BIP44 Account: "m/44\'/245\'/0\'"\n'
     const childNode = masterHDNode.derivePath(`m/44'/245'/0'/0/0`)
-    outObj.cashAddress = bchjs.HDNode.toCashAddress(childNode)
-    outObj.slpAddress = bchjs.SLP.Address.toSLPAddress(outObj.cashAddress)
-    outObj.legacyAddress = bchjs.HDNode.toLegacyAddress(childNode)
-    outObj.WIF = bchjs.HDNode.toWIF(childNode)
-    outObj.publicKey = bchjs.HDNode.toPublicKey(childNode).toString('hex')
+    outObj.cashAddress = bchlib.HDNode.toCashAddress(childNode)
+    outObj.slpAddress = bchlib.SLP.Address.toSLPAddress(outObj.cashAddress)
+    outObj.legacyAddress = bchlib.HDNode.toLegacyAddress(childNode)
+    outObj.WIF = bchlib.HDNode.toWIF(childNode)
+    outObj.publicKey = bchlib.HDNode.toPublicKey(childNode).toString('hex')
+    outStr += JSON.stringify(outObj, null, 2)
+    console.log(outStr)
 
-    savePath = path.join(__dirname, 'wallet.json')
-    // Write out the basic information into a json file for other example apps to use.
+    const savePath = path.join(__dirname, 'wallet.json')
     fs.writeFile(savePath, JSON.stringify(outObj, null, 2), function (err) {
       if (err) return console.error(err)
       console.log('wallet.json written successfully.')

@@ -1,3 +1,7 @@
+/* eslint-disable no-async-promise-executor */
+
+'use strict'
+
 // const axios = require('axios')
 
 const DUST = 546
