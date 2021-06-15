@@ -1,6 +1,6 @@
 {
   "name": "bch-js-nft",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "NFT extensions to @psf/bch-js library",
   "main": "src/bch-js-nft.js",
   "files": [
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zh/bch-js-ext.git"
+    "url": "git+https://github.com/zh/bch-js-nft.git"
   },
   "keywords": [
     "bitcoincash",
