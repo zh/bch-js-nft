@@ -3,6 +3,7 @@
 'use strict'
 
 // const axios = require('axios')
+const { BCP } = require('bcp-js')
 
 const DUST = 546
 
@@ -13,6 +14,20 @@ class NFT {
     this.slpdbURL = config.slpdbURL
     this.bchjs = config.bchjs
     this.txFee = config.txFee || 450
+  }
+
+  payloadScript (payload) {
+    try {
+      if (!payload || !payload.data || payload.data === '') {
+        throw new Error('Please provide at least URL data')
+      }
+      const type = payload.type || 0x01 // BCP_TYPE_GENERIC
+      const source = payload.source || 0x03 // BCP_SRC_URL
+      return (new BCP()).create(type, source, payload.data)
+    } catch (error) {
+      console.error('Error in createBCP: ', error)
+      throw error
+    }
   }
 
   async listTokens (wallet, validate = false) {
@@ -215,17 +230,27 @@ class NFT {
       }
 
       const legacyAddress = this.bchjs.SLP.Address.toLegacyAddress(wallet.slpAddress)
+      const toLegacyAddress = config.receiver ? this.bchjs.SLP.Address.toLegacyAddress(config.receiver) : legacyAddress
       const paymentUtxo = await this.findPaymentUtxo(legacyAddress)
 
       const script = this.bchjs.SLP.NFT1.generateNFTChildGenesisOpReturn(mintConfig)
       const originalAmount = paymentUtxo.value
-      const remainder = originalAmount - DUST - this.txFee // group + baton
+      const dustAmount = config.payload ? 2 * DUST : DUST// SLP or SLP+BCP
+      const remainder = originalAmount - dustAmount - this.txFee
 
+      // SLP is always OUT#0
       const outputs = [
         { address: script, value: 0 },
-        { address: legacyAddress, value: DUST },
-        { address: legacyAddress, value: remainder }
+        { address: toLegacyAddress, value: DUST }
       ]
+      // BCP can be on OUT#1
+      if (config && config.payload) {
+        const pscript = this.payloadScript(config.payload)
+        outputs.push({ address: pscript, value: 0 })
+        outputs.push({ address: toLegacyAddress, value: DUST })
+      }
+      outputs.push({ address: legacyAddress, value: remainder })
+
       const inputs = [
         { txid: burnUtxo.tx_hash, pos: burnUtxo.tx_pos, value: DUST },
         { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount }
