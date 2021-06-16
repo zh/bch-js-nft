@@ -1,6 +1,6 @@
 {
   "name": "bch-js-nft",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "NFT extensions to @psf/bch-js library",
   "main": "src/bch-js-nft.js",
   "files": [
