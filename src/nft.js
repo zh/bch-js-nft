@@ -262,6 +262,39 @@ class NFT {
     }
   }
 
+  async removeNftChild (wallet, tokenId, allTokens = null) {
+    try {
+      const allChildren = await this.listAllChildren(wallet, allTokens)
+      // only delete NFT children tokens (amount = 1)
+      const tokenUtxos = allChildren.filter(tx => tx.tokenId === tokenId && tx.tokenType === 65)
+      if (!tokenUtxos || tokenUtxos.length === 0) {
+        throw new Error(`Token '${tokenId}' does not exists in this wallet`)
+      }
+
+      const legacyAddress = this.bchjs.SLP.Address.toLegacyAddress(wallet.slpAddress)
+      const paymentUtxo = await this.findPaymentUtxo(legacyAddress)
+      const burnUtxo = tokenUtxos[0]
+
+      const script = this.bchjs.SLP.TokenType1.generateBurnOpReturn(tokenUtxos, 1)
+      const originalAmount = paymentUtxo.value
+      const remainder = originalAmount - DUST - this.txFee
+
+      const outputs = [
+        { address: script, value: 0 },
+        { address: legacyAddress, value: DUST },
+        { address: legacyAddress, value: remainder }
+      ]
+      const inputs = [
+        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount },
+        { txid: burnUtxo.tx_hash, pos: burnUtxo.tx_pos, value: DUST }
+      ]
+      return this.constructTx(wallet.WIF, inputs, outputs)
+    } catch (error) {
+      console.error('Error in removeNftChild: ', error)
+      throw error
+    }
+  }
+
   async constructTx (wif, inputs, outputs) {
     try {
       const transactionBuilder = new this.bchjs.TransactionBuilder()
