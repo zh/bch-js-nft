@@ -3,6 +3,12 @@ const groupConfig = {
   name: 'ZH NFT Tests Group',
   ticker: 'ZHGRP',
   amount: 100
+  /*
+  ,funder: {
+    address: 'bitcoincash:--PUT-REAL-BCH-ADDRESS-HERE--',
+    wif: '5L.....PUT-REAL-WIF-HERE--'
+  }
+  */
 }
 
 const BCHJS = require('@psf/bch-js')

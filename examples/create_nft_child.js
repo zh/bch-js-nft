@@ -3,6 +3,12 @@ const childConfig = {
   group: '--TXID-FROM-CREATE-NFT-GROUP-SCRIPT--',
   name: 'ZH NFT Tests Child',
   ticker: 'ZHCHLD'
+  /*
+  ,funder: {
+    address: 'bitcoincash:--PUT-REAL-BCH-ADDRESS-HERE--',
+    wif: '5L.....PUT-REAL-WIF-HERE--'
+  }
+  */
 }
 
 const BCHJS = require('@psf/bch-js')
