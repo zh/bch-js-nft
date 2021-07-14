@@ -96,10 +96,10 @@ class NFT {
         { address: legacyAddress, value: remainder }
       ]
       const inputs = [
-        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount }
+        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount, wif: wallet.WIF }
       ]
 
-      return this.constructTx(wallet.WIF, inputs, outputs)
+      return this.constructTx(inputs, outputs)
     } catch (error) {
       console.error('Error in createNftGroup: ', error)
       throw error
@@ -130,10 +130,10 @@ class NFT {
         { address: legacyAddress, value: remainder }
       ]
       const inputs = [
-        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount },
-        { txid: baton[0].tx_hash, pos: baton[0].tx_pos, value: DUST }
+        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount, wif: wallet.WIF },
+        { txid: baton[0].tx_hash, pos: baton[0].tx_pos, value: DUST, wif: wallet.WIF }
       ]
-      return this.constructTx(wallet.WIF, inputs, outputs)
+      return this.constructTx(inputs, outputs)
     } catch (error) {
       console.error('Error in mintNftGroup: ', error)
       throw error
@@ -161,14 +161,14 @@ class NFT {
       outputs.push({ address: legacyAddress, value: remainder })
 
       const inputs = [
-        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount }
+        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount, wif: wallet.WIF }
       ]
       // add each group token UTXO as an input.
       for (let i = 0; i < tokenUtxos.length; i++) {
         const thisUtxo = tokenUtxos[i]
-        inputs.push({ txid: thisUtxo.tx_hash, pos: thisUtxo.tx_pos, value: thisUtxo.value })
+        inputs.push({ txid: thisUtxo.tx_hash, pos: thisUtxo.tx_pos, value: thisUtxo.value, wif: wallet.WIF })
       }
-      return this.constructTx(wallet.WIF, inputs, outputs)
+      return this.constructTx(inputs, outputs)
     } catch (error) {
       console.error('Error in sendNftToken: ', error)
       throw error
@@ -227,24 +227,23 @@ class NFT {
         { address: legacyAddress, value: remainder }
       ]
       const inputs = [
-        { txid: burnUtxo.tx_hash, pos: burnUtxo.tx_pos, value: DUST },
-        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount }
+        { txid: burnUtxo.tx_hash, pos: burnUtxo.tx_pos, value: DUST, wif: wallet.WIF },
+        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount, wif: wallet.WIF }
       ]
-      return this.constructTx(wallet.WIF, inputs, outputs)
+      return this.constructTx(inputs, outputs)
     } catch (error) {
       console.error('Error in createNftChild: ', error)
       throw error
     }
   }
 
-  async constructTx (wif, inputs, outputs) {
+  async constructTx (inputs, outputs) {
     try {
       const transactionBuilder = new this.bchjs.TransactionBuilder()
       for (let i = 0; i < outputs.length; i++) {
         transactionBuilder.addOutput(outputs[i].address, outputs[i].value)
       }
 
-      const keyPair = this.bchjs.ECPair.fromWIF(wif)
       // first add all THEN sign
       for (let i = 0; i < inputs.length; i++) {
         transactionBuilder.addInput(inputs[i].txid, inputs[i].pos)
@@ -252,7 +251,7 @@ class NFT {
       for (let i = 0; i < inputs.length; i++) {
         transactionBuilder.sign(
           i,
-          keyPair,
+          this.bchjs.ECPair.fromWIF(inputs[i].wif),
           undefined,
           transactionBuilder.hashTypes.SIGHASH_ALL,
           inputs[i].value
