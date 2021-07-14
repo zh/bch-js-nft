@@ -81,9 +81,14 @@ class NFT {
         mintBatonVout: 2,
         initialQty: config.amount || 1000
       }
+      // fee funder
+      const feeAddress = config.funder ? config.funder.address : wallet.slpAddress
+      const feeWif = config.funder ? config.funder.wif : wallet.WIF
+
       // console.log(`config: ${JSON.stringify(mintConfig, null, 2)}`)
       const legacyAddress = this.bchjs.SLP.Address.toLegacyAddress(wallet.slpAddress)
-      const paymentUtxo = await this.findPaymentUtxo(legacyAddress)
+      const feeLegacyAddress = this.bchjs.SLP.Address.toLegacyAddress(feeAddress)
+      const paymentUtxo = await this.findPaymentUtxo(feeLegacyAddress)
 
       const script = this.bchjs.SLP.NFT1.newNFTGroupOpReturn(mintConfig)
       const originalAmount = paymentUtxo.value
@@ -93,10 +98,10 @@ class NFT {
         { address: script, value: 0 },
         { address: legacyAddress, value: DUST },
         { address: legacyAddress, value: DUST },
-        { address: legacyAddress, value: remainder }
+        { address: feeLegacyAddress, value: remainder }
       ]
       const inputs = [
-        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount, wif: wallet.WIF }
+        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount, wif: feeWif }
       ]
 
       return this.constructTx(inputs, outputs)
@@ -107,7 +112,7 @@ class NFT {
   }
 
   // group token with qty = 1 for creating child
-  async mintNftGroup (wallet, groupId, allTokens = null) {
+  async mintNftGroup (wallet, groupId, config, allTokens = null) {
     try {
       if (!groupId) throw new Error('Please provide group ID')
       const allBatons = await this.listAllMintBatons(wallet, allTokens)
@@ -116,8 +121,13 @@ class NFT {
       if (!baton || baton.length === 0) throw new Error(`No ${groupId} group baton available`)
       // console.log(`baton: ${JSON.stringify(baton, null, 2)}`)
 
+      // fee funder
+      const feeAddress = config.funder ? config.funder.address : wallet.slpAddress
+      const feeWif = config.funder ? config.funder.wif : wallet.WIF
+
       const legacyAddress = this.bchjs.SLP.Address.toLegacyAddress(wallet.slpAddress)
-      const paymentUtxo = await this.findPaymentUtxo(legacyAddress)
+      const feeLegacyAddress = this.bchjs.SLP.Address.toLegacyAddress(feeAddress)
+      const paymentUtxo = await this.findPaymentUtxo(feeLegacyAddress)
 
       const script = this.bchjs.SLP.NFT1.mintNFTGroupOpReturn(baton, 1)
       const originalAmount = paymentUtxo.value
@@ -127,10 +137,10 @@ class NFT {
         { address: script, value: 0 },
         { address: legacyAddress, value: DUST },
         { address: legacyAddress, value: DUST },
-        { address: legacyAddress, value: remainder }
+        { address: feeLegacyAddress, value: remainder }
       ]
       const inputs = [
-        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount, wif: wallet.WIF },
+        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount, wif: feeWif },
         { txid: baton[0].tx_hash, pos: baton[0].tx_pos, value: DUST, wif: wallet.WIF }
       ]
       return this.constructTx(inputs, outputs)
@@ -140,11 +150,16 @@ class NFT {
     }
   }
 
-  async sendNftToken (toAddress, wallet, tokenId, tokenUtxos) {
+  async sendNftToken (toAddress, wallet, tokenId, config, tokenUtxos) {
     try {
+      // fee funder
+      const feeAddress = config.funder ? config.funder.address : wallet.slpAddress
+      const feeWif = config.funder ? config.funder.wif : wallet.WIF
+
       const legacyToAddress = this.bchjs.SLP.Address.toLegacyAddress(toAddress)
       const legacyAddress = this.bchjs.SLP.Address.toLegacyAddress(wallet.slpAddress)
-      const paymentUtxo = await this.findPaymentUtxo(legacyAddress)
+      const feeLegacyAddress = this.bchjs.SLP.Address.toLegacyAddress(feeAddress)
+      const paymentUtxo = await this.findPaymentUtxo(feeLegacyAddress)
 
       const slpSendObj = this.bchjs.SLP.NFT1.generateNFTGroupSendOpReturn(tokenUtxos, 1)
       const originalAmount = paymentUtxo.value
@@ -158,10 +173,10 @@ class NFT {
       if (slpSendObj.outputs > 1) {
         outputs.push({ address: legacyAddress, value: DUST })
       }
-      outputs.push({ address: legacyAddress, value: remainder })
+      outputs.push({ address: feeLegacyAddress, value: remainder })
 
       const inputs = [
-        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount, wif: wallet.WIF }
+        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount, wif: feeWif }
       ]
       // add each group token UTXO as an input.
       for (let i = 0; i < tokenUtxos.length; i++) {
@@ -175,13 +190,14 @@ class NFT {
     }
   }
 
-  async createBurnUtxo (wallet, groupId, allTokens = null) {
+  async createBurnUtxo (wallet, config, allTokens = null) {
     try {
+      const groupId = config.group
       const allGroups = await this.listAllGroups(wallet, allTokens)
       const groupUtxos = allGroups.filter((g) => g.tokenId === groupId)
       if (!groupUtxos || groupUtxos.length === 0) throw new Error(`No ${groupId} group UTXOs available`)
 
-      return this.sendNftToken(wallet.slpAddress, wallet, groupId, groupUtxos)
+      return this.sendNftToken(wallet.slpAddress, wallet, groupId, config, groupUtxos)
     } catch (error) {
       console.error('Error in createBurnUtxo: ', error)
       throw error
@@ -192,7 +208,7 @@ class NFT {
     try {
       let burnUtxo = await this.findBurnUtxo(wallet, config.group, allTokens)
       if (!burnUtxo) {
-        const burnTxId = await this.createBurnUtxo(wallet, config.group, allTokens)
+        const burnTxId = await this.createBurnUtxo(wallet, config, allTokens)
         console.log(`burn txid: https://explorer.bitcoin.com/bch/tx/${burnTxId}`)
         await sleep(3000)
         burnUtxo = await this.findBurnUtxo(wallet, config.group)
@@ -213,9 +229,13 @@ class NFT {
         documentUrl: docURL,
         documentHash: docHash
       }
+      // fee funder
+      const feeAddress = config.funder ? config.funder.address : wallet.slpAddress
+      const feeWif = config.funder ? config.funder.wif : wallet.WIF
 
       const legacyAddress = this.bchjs.SLP.Address.toLegacyAddress(wallet.slpAddress)
-      const paymentUtxo = await this.findPaymentUtxo(legacyAddress)
+      const feeLegacyAddress = this.bchjs.SLP.Address.toLegacyAddress(feeAddress)
+      const paymentUtxo = await this.findPaymentUtxo(feeAddress)
 
       const script = this.bchjs.SLP.NFT1.generateNFTChildGenesisOpReturn(mintConfig)
       const originalAmount = paymentUtxo.value
@@ -224,11 +244,11 @@ class NFT {
       const outputs = [
         { address: script, value: 0 },
         { address: legacyAddress, value: DUST },
-        { address: legacyAddress, value: remainder }
+        { address: feeLegacyAddress, value: remainder }
       ]
       const inputs = [
         { txid: burnUtxo.tx_hash, pos: burnUtxo.tx_pos, value: DUST, wif: wallet.WIF },
-        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount, wif: wallet.WIF }
+        { txid: paymentUtxo.tx_hash, pos: paymentUtxo.tx_pos, value: originalAmount, wif: feeWif }
       ]
       return this.constructTx(inputs, outputs)
     } catch (error) {
