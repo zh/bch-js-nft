@@ -13,6 +13,7 @@ class NFT {
     this.slpdbURL = config.slpdbURL
     this.bchjs = config.bchjs
     this.txFee = config.txFee || 450
+    this.Utils = config.utils
   }
 
   async listTokens (wallet, validate = false) {
@@ -37,6 +38,19 @@ class NFT {
     const all = allTokens || await this.listTokens(wallet)
     if (!all || !all.groupMintBatons) return {}
     return all.groupMintBatons
+  }
+
+  // slpData = { tokens: { listAllChildren here }, groups: { slpExplorerGroups here } }
+  async getPayload (tokenId, wallet, slpData = {}) {
+    const allTokens = slpData.tokens || await this.listAllChildren(wallet)
+    if (allTokens.length === 0) return ''
+    const info = allTokens.filter((g) => g.tokenId === tokenId)[0]
+    if (!info || info.tokenType !== 65) return ''
+    const tokenUri = info.tokenDocumentUrl
+    // base uri + txid payload
+    const group = await this.bchjs.SLP.NFT1.parentNFTGroup(tokenId)
+    if (!group || !group.nftGroup) return this.Utils.formatDocUri(tokenUri)
+    return this.Utils.formatSlpExplorerUri(group.nftGroup.id, tokenUri, slpData.groups)
   }
 
   async findPaymentUtxo (address) {
