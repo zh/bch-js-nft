@@ -39,13 +39,15 @@ class Utils {
   }
 
   formatDocUri (documentUri) {
-    if (documentUri && documentUri.startsWith('Qm')) {
-      return `${this.ipfsURL}${documentUri}`
+    const allowedProtocols = ['ftp', 'http', 'https', 'ipfs']
+    if (documentUri) {
+      if (documentUri.startsWith('Qm')) return `${this.ipfsURL}${documentUri}`
+      const schema = documentUri.split('://')
+      if (schema[0] || allowedProtocols.includes(schema[0])) {
+        if (schema[0] === 'ipfs') return `${this.ipfsURL}${schema[1]}`
+        // TODO: support for other protocols (schema[0])
+      }
     }
-    if (documentUri && documentUri.startsWith('ipfs://')) {
-      return `${this.ipfsURL}${documentUri.substr(7, documentUri.length)}`
-    }
-    // TODO: check for other hash formats too
     return documentUri
   }
 
@@ -53,7 +55,8 @@ class Utils {
     const all = allGroups || await this.slpExplorerGroups()
     if (!all || !this.isSlpExplorerGroup(groupId, all)) return this.formatDocUri(documentUri)
     const slpGroup = all.filter((g) => groupId === g.id)[0]
-    return slpGroup ? `${slpGroup.url}/original/${groupId}.png` : this.formatDocUri(documentUri)
+    if (slpGroup.url.substr(-1) !== '/') slpGroup.url += '/'
+    return slpGroup ? `${slpGroup.url}original/${groupId}.png` : this.formatDocUri(documentUri)
   }
 }
 
