@@ -1,6 +1,6 @@
 {
   "name": "bch-js-nft",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "NFT extensions to @psf/bch-js library",
   "main": "src/bch-js-nft.js",
   "files": [
@@ -28,10 +28,10 @@
   },
   "homepage": "https://github.com/zh/bch-js-nft#readme",
   "dependencies": {
-    "@psf/bch-js": "^4.18.4",
     "axios": "^0.21.1"
   },
   "devDependencies": {
+    "@psf/bch-js": "^4.20.2",
     "mocha": "^9.0.0"
   }
 }
