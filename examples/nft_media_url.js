@@ -27,6 +27,9 @@ async function getNFTMedia (walletInfo) {
     let tokenId = '--some-nft-child-token-txid--'
     let mediaUri = await nftjs.NFT.getPayload(tokenId, walletInfo, slpData)
     console.log(mediaUri)
+    tokenId = '--other-nft-child-token-txid--'
+    mediaUri = await nftjs.NFT.getPayload(tokenId, walletInfo, slpData)
+    console.log(mediaUri)
   } catch (error) {
     console.error('error in getNFTMedia: ', error)
   }
